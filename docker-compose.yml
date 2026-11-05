@@ -1,0 +1,27 @@
+# Banco local do QR Code Manager: UM container Postgres.
+# Dados em volume nomeado (qrcode-manager_pgdata): sobrevivem a stop/down. Só "down -v" apaga.
+name: qrcode-manager
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: qrcode-manager-db
+    restart: "no"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}   # vem do ambiente (o start.ps1 lê do .env.local); porta presa em 127.0.0.1
+      POSTGRES_DB: qrcode
+    ports:
+      - "127.0.0.1:54422:5432"        # 5432/54322 podem estar ocupadas nesta máquina
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1: durante o initdb o servidor só escuta no socket; via TCP evita "pronto" falso
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qrcode -h 127.0.0.1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+volumes:
+  pgdata:
